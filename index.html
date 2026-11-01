@@ -213,6 +213,7 @@ details[open] summary { margin-bottom: 10px; }
   const POT_ROI = { x: 0.5, y: 0, w: 0.5, h: 0.26 };
   const POT_A = "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";
   const POT_B = "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UEoppVouQwgxVDWWU5RsFgAcDsfly99Qp9N54cKFWCzm9XptkjQyOrL83nuDkxOMGZzDJ8eOTU3fBow5gMm4pumxWGw8FPB6PIaiSU5LNpOprK5WFXV4aFjXdIJRNBpduXIlvnLlyvnz58+ePet0uwglcjL5zI7tzXPnnj59+q6ldw0MD1mcjkVL7ywpL9NMw+F0lJaV5RSttq6+otivJNPzquZUeAsdWCjJy89zumZmYrIs79y5k771zv4nf76qvn7OkSOHnQ577+YeU9N/+Yttv/r1M6+++jtsdTAABLyosODY0U8ycubm2NjoyKiqKIWSs7OjQxIs46Oj3167mlUUTMj09PTefXsNw0R9R75947dbr137attTWx5/bBVwTimR7PbArcjqx1bLSVkUraZpPP30NofT8fvXX3d73A6XtH7dusaaWsZYOBwOBkPXrl4dHRu9s71918svY4QIoais8kfhycsg6BgQ5kAQLFiwYNeul7ofeJhTzjRGqYUxs7d3s8fjvnH9uz1790zHol1dXcTkAiUYY9M0e3s39/T0MM4sNhtnHADob/6yB3SGEBYYFhi5+N8zX579t448xJr39rvv6kTEVBAEcvzIx/K0vGP3PlV0uArEYye/AADgHAHGgBwupynZGeNZwIgA5xzVt94FjCJEECOI41RyRpL4uk09L73wfH19DaMSIgJCrKq25o7Fi/z+UmAmYZogCIIgKIpi6AYlAgfOASgVTIMxxgAAtXnECQXSOgJACBBCTLJb/P7yocEh4AwwBYSA88LiooLCQvzDkTOEMcbYMAzOOEaIAwAAwtjkHHEuYPg/EP2wbqBljuYAAAAASUVORK5CYII=";
+  const POT_X = [];      /* 추가 아이콘 이미지: 실제 화면 사진으로 시험해 보니 "사라진" 장면의 점수만 올라가서 쓰지 않음 */
 
   /* ---------- 룬 감지: 밝은 보라 속색 + 마름모 모양 + 좌우·상하 대칭 ---------- */
   /* ---------- 미니맵 칸 찾기: 흰색 둥근 테두리의 위·아래 가로선 ---------- */
@@ -300,7 +301,7 @@ details[open] summary { margin-bottom: 10px; }
      남은 시간 숫자가 겹치는 가운데·왼쪽 아래는 비교에서 제외한다. 은빛 병이든 금빛 병이든 병이 하나라도 있으면 "있음". */
   const TPL = { imgs: [], cache: new Map() };
   async function loadTemplate() {
-    for (const b64 of [POT_A, POT_B]) {
+    for (const b64 of [POT_A, POT_B].concat(POT_X)) {
       const im = new Image(); im.src = "data:image/png;base64," + b64; await im.decode();
       const c = document.createElement("canvas"); c.width = im.naturalWidth; c.height = im.naturalHeight;
       c.getContext("2d").drawImage(im, 0, 0); TPL.imgs.push(c);
@@ -479,6 +480,7 @@ details[open] summary { margin-bottom: 10px; }
   /* ---------- 화면 공유 · 스캔 ---------- */
   const ivl = () => (S.eco ? Math.max(S.interval, 1000) : S.interval);
   const video = document.createElement("video"); video.muted = true; video.playsInline = true;
+  video.style.cssText = "position:fixed;right:0;bottom:0;width:2px;height:2px;opacity:0.01;pointer-events:none"; document.body.appendChild(video);
   const pv = $("preview"), pctx = pv.getContext("2d");
   const offR = document.createElement("canvas"), cR = offR.getContext("2d", { willReadFrequently: true });
   const offP = document.createElement("canvas"), cP = offP.getContext("2d", { willReadFrequently: true });
@@ -488,32 +490,32 @@ details[open] summary { margin-bottom: 10px; }
 
   const rune = { hist: [], miss: 0, active: false, muted: false, ring: 0, next: 0, boxes: [], core: 0, cands: [], pos: null, cand: null, frame: null, frameCand: null, frameFails: 0, frameAt: 0, fb: null };
   const pot = { seen: false, run: 0, last: null, absentSince: 0, alarm: false, muted: false, ring: 0, next: 0, lastScan: 0, score: 0, info: null };
-  let prevTiny = null, lastBad = 0, lastDraw = 0;
+  let prevTiny = null, lastBad = 0, lastDraw = 0, staleSince = 0;
   const TITLE0 = "룬 알리미", baseTitle = () => S.num + "번 · " + TITLE0;
 
   const px = (roi, W, H) => ({ x: Math.round(roi.x * W), y: Math.round(roi.y * H), w: Math.round(roi.w * W), h: Math.round(roi.h * H) });
 
-  function sceneCheck() {
-    cT.drawImage(video, 0, 0, 32, 18);
+  function sceneCheck(src) {
+    cT.drawImage(src, 0, 0, 32, 18);
     const d = cT.getImageData(0, 0, 32, 18).data, lum = new Float32Array(576); let mean = 0;
     for (let i = 0; i < 576; i++) { lum[i] = d[i * 4] * 0.3 + d[i * 4 + 1] * 0.59 + d[i * 4 + 2] * 0.11; mean += lum[i]; }
     mean /= 576; let diff = 0;
     if (prevTiny) { for (let i = 0; i < 576; i++) diff += Math.abs(lum[i] - prevTiny[i]); diff /= 576; }
+    if (prevTiny && diff === 0) { if (!staleSince) staleSince = performance.now(); } else staleSince = 0;      /* 같은 화면이 계속되면 갱신이 멈춘 것 */
     prevTiny = lum;
     return mean < 12 || diff > 28;      /* 암전·맵 이동처럼 화면이 통째로 바뀌는 순간 */
   }
 
-  function scan() {
-    if (!stream || !video.videoWidth) return;
-    const now = performance.now(), W = video.videoWidth, H = video.videoHeight;
+  function scanOn(src, W, H) {
+    const now = performance.now();
     scans++;
-    const bad = sceneCheck();
+    const bad = sceneCheck(src);
     if (bad) lastBad = now;
     const sceneOK = now - lastBad > 1500;
 
     if (S.rune) {
       const r = px(FRAME_ROI, W, H); offR.width = r.w; offR.height = r.h;
-      cR.drawImage(video, r.x, r.y, r.w, r.h, 0, 0, r.w, r.h);
+      cR.drawImage(src, r.x, r.y, r.w, r.h, 0, 0, r.w, r.h);
       if (now - rune.frameAt >= 1000) { rune.frameAt = now; updateFrame(cR.getImageData(0, 0, r.w, r.h).data, r.w, r.h, W, H); }
       const wide = px(RUNE_ROI, W, H);
       const fb = rune.frame || { x: 0, y: 0, w: Math.min(wide.w, r.w), h: Math.min(wide.h, r.h) };
@@ -523,10 +525,10 @@ details[open] summary { margin-bottom: 10px; }
       const b0 = rune.boxes[0];
       feedRune(!!b0, b0 && { x: b0.x + b0.w / 2, y: b0.y + b0.h / 2 }, now, now - lastBad < 3000, W);
     }
-    if (S.potion && TPL.imgs.length === 2 && now - pot.lastScan >= (pot.seen || pot.last ? (S.eco ? 2000 : 1000) : (S.eco ? 6000 : 2500))) {
+    if (S.potion && TPL.imgs.length >= 2 && now - pot.lastScan >= (pot.seen || pot.last ? (S.eco ? 2000 : 1000) : (S.eco ? 6000 : 2500))) {
       pot.lastScan = now;
       const r = px(POT_ROI, W, H); offP.width = r.w; offP.height = r.h;
-      cP.drawImage(video, r.x, r.y, r.w, r.h, 0, 0, r.w, r.h);
+      cP.drawImage(src, r.x, r.y, r.w, r.h, 0, 0, r.w, r.h);
       const m = findPotion(cP.getImageData(0, 0, r.w, r.h).data, r.w, r.h, W, pot.last);
       pot.score = m.score;
       const found = m.score >= (m.tracked ? POT_TRACK : POT_T);
@@ -537,6 +539,25 @@ details[open] summary { margin-bottom: 10px; }
     ringTick(now);
     if (!document.hidden && (!S.eco || now - lastDraw >= 3000)) { lastDraw = now; drawPreview(W, H); }   /* 탭이 가려져 있으면 그리지 않음 */
     render(now);
+  }
+
+  let curSrc = video, grabber = null, scanBusy = false;
+  async function scan() {
+    if (!stream || scanBusy) return;
+    scanBusy = true;
+    let bmp = null;
+    try {
+      if (video.paused && video.srcObject) video.play().catch(() => {});
+      let src = video, W = video.videoWidth, H = video.videoHeight;
+      if (grabber) {
+        try { bmp = await grabber.grabFrame(); src = bmp; W = bmp.width; H = bmp.height; }
+        catch (e) { grabber = null; bmp = null; }      /* 안 되면 예전 방식(video)으로 */
+      }
+      if (!stream || !W) return;
+      curSrc = src; scanOn(src, W, H);
+    } finally {
+      curSrc = video; if (bmp && bmp.close) bmp.close(); scanBusy = false;
+    }
   }
 
   function updateFrame(d, w, h, W, H) {
@@ -597,7 +618,7 @@ details[open] summary { margin-bottom: 10px; }
     } else if (pot.alarm) {
       st.dataset.s = "potion"; $("stLabel").textContent = "소형 재물 획득의 비약이 끝났습니다"; $("stMeta").textContent = "알람 " + pot.ring + "회 · " + runeTxt;
     } else {
-      st.dataset.s = "watch"; $("stLabel").textContent = "감시 중"; $("stMeta").textContent = runeTxt + " · " + potTxt + " · 확인 " + scans + "회";
+      st.dataset.s = "watch"; $("stLabel").textContent = "감시 중"; $("stMeta").textContent = runeTxt + " · " + potTxt + " · 확인 " + scans + "회" + (staleSince && now - staleSince > 30000 ? " · ⚠ 화면이 30초 넘게 그대로입니다 (창이 가려져 쉬는 중일 수 있어요)" : "");
     }
     if (anyAlarm) document.title = (flash++ % 2 ? "🔔 " : "") + (rune.active ? "룬 발견" : "소재비 종료") + " · " + baseTitle(); else document.title = baseTitle();
     const rc = rune.cands.slice(0, 4).map((c) => c.w + "×" + c.h + (c.ok ? " 룬" : " " + c.why)).join(", ");
@@ -607,7 +628,7 @@ details[open] summary { margin-bottom: 10px; }
   function drawPreview(W, H) {
     const sc = Math.min(1, 960 / W), cw = Math.round(W * sc), ch = Math.round(H * sc);
     if (pv.width !== cw || pv.height !== ch) { pv.width = cw; pv.height = ch; }
-    pctx.drawImage(video, 0, 0, cw, ch);
+    pctx.drawImage(curSrc, 0, 0, cw, ch);
     pctx.lineWidth = 2; pctx.setLineDash([6, 4]);
     const dash = (roi, col) => { const r = px(roi, W, H); pctx.strokeStyle = col; pctx.strokeRect(r.x * sc, r.y * sc, r.w * sc, r.h * sc); };
     if (S.rune && rune.fb) { pctx.strokeStyle = "#ffd84a"; pctx.strokeRect(rune.fb.x * sc, rune.fb.y * sc, rune.fb.w * sc, rune.fb.h * sc); }
@@ -619,6 +640,22 @@ details[open] summary { margin-bottom: 10px; }
   }
 
   $("btnMute").addEventListener("click", () => { rune.muted = true; pot.muted = true; });
+
+  /* 크롬이 가려진 탭을 쉬게 하지 않도록: 사람 귀에 안 들리는 아주 작은 소리 + 웹 락 */
+  let ka = null, kaRelease = null, kaWant = false;
+  function keepAlive(on) {
+    kaWant = on;
+    if (ka) { try { ka.o.stop(); ka.o.disconnect(); ka.g.disconnect(); } catch (e) {} ka = null; }
+    if (kaRelease) { kaRelease(); kaRelease = null; }
+    if (!on) return;
+    try {
+      const c = audio();
+      if (c) { const o = c.createOscillator(), g = c.createGain(); o.frequency.value = 20; g.gain.value = 0.002; o.connect(g); g.connect(c.destination); o.start(); ka = { o, g }; }
+    } catch (e) {}
+    try {
+      if (navigator.locks) navigator.locks.request("rune-alert-keepalive", () => new Promise((res) => { if (kaWant) kaRelease = res; else res(); }));
+    } catch (e) {}
+  }
 
   function startTicker() {
     stopTicker();
@@ -635,7 +672,7 @@ details[open] summary { margin-bottom: 10px; }
   function resetState() {
     Object.assign(rune, { hist: [], miss: 0, active: false, muted: false, ring: 0, next: 0, boxes: [], core: 0, cands: [], pos: null, cand: null, frame: null, frameCand: null, frameFails: 0, frameAt: 0, fb: null });
     Object.assign(pot, { seen: false, run: 0, last: null, absentSince: 0, alarm: false, muted: false, ring: 0, next: 0, lastScan: 0, score: 0, info: null });
-    prevTiny = null; lastBad = 0; scans = 0;
+    prevTiny = null; lastBad = 0; scans = 0; staleSince = 0;
   }
 
   async function start() {
@@ -648,13 +685,15 @@ details[open] summary { margin-bottom: 10px; }
     }
     video.srcObject = stream; await video.play().catch(() => {});
     stream.getVideoTracks()[0].addEventListener("ended", () => stop(true));
+    grabber = null; try { if (window.ImageCapture) grabber = new ImageCapture(stream.getVideoTracks()[0]); } catch (e) { grabber = null; }
+    keepAlive(true);
     $("btnStart").hidden = true; $("btnStop").hidden = false;
     resetState(); lastBad = performance.now();
     $("status").dataset.s = "watch"; $("stLabel").textContent = "감시 중"; $("stMeta").textContent = "시작하는 중…";
     startTicker();
   }
   function stop(byUser) {
-    stopTicker();
+    stopTicker(); keepAlive(false); grabber = null;
     if (stream) { stream.getTracks().forEach((t) => t.stop()); stream = null; }
     video.srcObject = null; resetState(); document.title = baseTitle();
     $("btnStart").hidden = false; $("btnStop").hidden = true; $("btnMute").hidden = true;
@@ -712,7 +751,7 @@ details[open] summary { margin-bottom: 10px; }
     c.width = rr.w; c.height = rr.h; cx.drawImage(im, rr.x, rr.y, rr.w, rr.h, 0, 0, rr.w, rr.h);
     const fw = full ? W : 1650;
     out.rune = detectRune(cx.getImageData(0, 0, rr.w, rr.h).data, rr.w, rr.h, fw);
-    if (full && TPL.imgs.length === 2) {
+    if (full && TPL.imgs.length >= 2) {
       const pr = px(POT_ROI, W, H); c.width = pr.w; c.height = pr.h; cx.drawImage(im, pr.x, pr.y, pr.w, pr.h, 0, 0, pr.w, pr.h);
       const m = findPotion(cx.getImageData(0, 0, pr.w, pr.h).data, pr.w, pr.h, W, null);
       out.potion = { score: m.score, x: pr.x + m.x, y: pr.y + m.y, size: m.size };
@@ -735,7 +774,7 @@ details[open] summary { margin-bottom: 10px; }
 
   loadTemplate().catch(() => {});
   render(performance.now());
-  window.__rune = { synth: { playPiano, playTrumpet, noteHz, PIANO_BASE, TRUMPET_BASE }, detectRune, findPotion, analyzeImage, tplReady: () => TPL.imgs.length === 2, T: POT_T, state: () => ({ rune: { active: rune.active, ring: rune.ring }, pot: { seen: pot.seen, alarm: pot.alarm, ring: pot.ring, score: pot.score }, scans }) };
+  window.__rune = { synth: { playPiano, playTrumpet, noteHz, PIANO_BASE, TRUMPET_BASE }, detectRune, findPotion, analyzeImage, tplReady: () => TPL.imgs.length >= 2, T: POT_T, state: () => ({ rune: { active: rune.active, ring: rune.ring }, pot: { seen: pot.seen, alarm: pot.alarm, ring: pot.ring, score: pot.score }, scans, grab: !!grabber, ka: !!ka, stale: staleSince }) };
 })();
 </script>
 </body>
