@@ -1,0 +1,742 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>룬 알리미</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* 레이아웃: 한 줄 폭의 작업 화면. 위에서 아래로 상태 → 화면 미리보기 → 설정 */
+:root {
+  --bg: #f4f2f7;
+  --panel: #ffffff;
+  --line: #ddd8e6;
+  --fg: #1d1a26;
+  --muted: #6b6578;
+  --rune: #9a3fd0;
+  --rune-soft: #efe2f8;
+  --potion: #b27a00;
+  --potion-soft: #fbf0d4;
+  --ok: #1f7a55;
+  --bad: #c0283c;
+  --font: "Noto Sans KR", "Malgun Gothic", "Apple SD Gothic Neo", system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #14121b; --panel: #1d1a28; --line: #332e44; --fg: #ece8f5; --muted: #9a93ad;
+    --rune: #d58cff; --rune-soft: #2d2140; --potion: #f0b840; --potion-soft: #3a2f12; --ok: #4fc795; --bad: #ff6b7e;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #14121b; --panel: #1d1a28; --line: #332e44; --fg: #ece8f5; --muted: #9a93ad;
+  --rune: #d58cff; --rune-soft: #2d2140; --potion: #f0b840; --potion-soft: #3a2f12; --ok: #4fc795; --bad: #ff6b7e;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--bg); color: var(--fg); font: 15px/1.6 var(--font); }
+.wrap { max-width: 880px; margin: 0 auto; padding-block: 28px 56px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 16px; }
+h1 { margin: 0; font-size: 22px; letter-spacing: -.01em; }
+h2 { margin: 0 0 10px; font-size: 13px; letter-spacing: .06em; color: var(--muted); font-weight: 700; }
+.sub { margin: 2px 0 0; color: var(--muted); font-size: 13.5px; }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px; min-width: 0; }
+button { font: inherit; cursor: pointer; border: 1px solid var(--line); background: var(--panel); color: var(--fg); padding: 8px 14px; border-radius: 8px; }
+button:hover { border-color: var(--rune); }
+button.primary { background: var(--rune); color: #fff; border-color: var(--rune); font-weight: 700; }
+:root[data-theme="dark"] button.primary { color: #1a1224; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) button.primary { color: #1a1224; } }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--rune); outline-offset: 2px; }
+.row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+
+/* 상태 띠 */
+.status { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
+.dot { width: 14px; height: 14px; border-radius: 50%; background: var(--muted); flex: none; }
+.status[data-s="watch"] .dot { background: var(--ok); }
+.status[data-s="rune"] { border-color: var(--rune); background: var(--rune-soft); }
+.status[data-s="rune"] .dot { background: var(--rune); border-radius: 2px; transform: rotate(45deg); animation: blink .6s steps(2) infinite; }
+.status[data-s="potion"] { border-color: var(--potion); background: var(--potion-soft); }
+.status[data-s="potion"] .dot { background: var(--potion); animation: blink .6s steps(2) infinite; }
+.status[data-s="ended"] .dot { background: var(--bad); }
+.status .label { font-weight: 700; font-size: 17px; }
+.status .meta { color: var(--muted); font-size: 13px; font-family: var(--mono); overflow-wrap: anywhere; }
+.grow { flex: 1; min-width: 0; }
+@keyframes blink { 50% { opacity: .25; } }
+@media (prefers-reduced-motion: reduce) { .status .dot { animation: none !important; } }
+
+/* 미리보기 */
+.stage { position: relative; background: #000; border-radius: 8px; overflow: hidden; line-height: 0; }
+.stage canvas { width: 100%; height: auto; display: block; }
+.stage .empty { position: absolute; inset: 0; display: grid; place-items: center; color: #aaa; font-size: 14px; line-height: 1.6; text-align: center; padding: 20px; }
+.hint { color: var(--muted); font-size: 13px; margin: 10px 0 0; }
+.hint b { color: var(--fg); }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 10px; font-size: 12.5px; color: var(--muted); }
+.legend i { display: inline-block; width: 12px; height: 12px; vertical-align: -1px; margin-right: 5px; border: 2px solid; }
+
+/* 설정 */
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 14px 22px; }
+label.f { display: grid; gap: 4px; font-size: 13.5px; }
+label.f span.v { font-family: var(--mono); color: var(--rune); }
+input[type=range] { width: 100%; accent-color: var(--rune); }
+select { font: inherit; padding: 7px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); color: var(--fg); max-width: 100%; }
+select:focus-visible { outline: 2px solid var(--rune); outline-offset: 2px; }
+.chk { display: flex; gap: 8px; align-items: center; font-size: 14px; }
+.chk input { accent-color: var(--rune); width: 16px; height: 16px; }
+.log { font-family: var(--mono); font-size: 12.5px; color: var(--muted); margin: 8px 0 0; min-height: 1.4em; overflow-wrap: anywhere; }
+details summary { cursor: pointer; font-weight: 700; font-size: 13px; letter-spacing: .06em; color: var(--muted); }
+details[open] summary { margin-bottom: 10px; }
+.steps { margin: 0; padding-left: 20px; color: var(--muted); font-size: 13.5px; }
+.steps li { margin: 3px 0; }
+</style>
+</head>
+<body>
+<main class="wrap">
+  <header>
+    <h1>룬 알리미</h1>
+    <p class="sub">게임 화면 전체를 공유하면 왼쪽 위 미니맵의 룬 표식과 오른쪽 위 버프 줄의 소재비 아이콘을 지켜보고, 소리로 알려줍니다. 영상은 이 브라우저 안에서만 처리되고 어디로도 전송되지 않습니다.</p>
+  </header>
+
+  <section class="panel status" id="status" data-s="idle" aria-live="polite">
+    <div class="dot" aria-hidden="true"></div>
+    <div class="grow">
+      <div class="label" id="stLabel">대기 중</div>
+      <div class="meta" id="stMeta">화면 공유를 시작해 주세요</div>
+    </div>
+    <div class="row">
+      <button id="btnMute" hidden>알람 끄기</button>
+      <button id="btnStart" class="primary">화면 공유 시작</button>
+      <button id="btnStop" hidden>중지</button>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2>화면 미리보기</h2>
+    <div class="stage" id="stage">
+      <canvas id="preview" width="960" height="540"></canvas>
+      <div class="empty" id="emptyMsg">공유한 화면이 여기에 표시됩니다.<br>메이플 창 전체(또는 모니터)를 공유해 주세요.</div>
+    </div>
+    <div class="legend">
+      <span><i style="border-color:#ffd84a;border-style:dashed"></i>룬을 찾는 구간(미니맵 칸)</span>
+      <span><i style="border-color:#4fd8ff;border-style:dashed"></i>소재비를 찾는 구간(오른쪽 위)</span>
+      <span><i style="border-color:#ff3df2"></i>감지된 룬 표식</span>
+      <span><i style="border-color:#3dff8a"></i>감지된 소재비 아이콘</span>
+    </div>
+    <p class="hint" id="detail"></p>
+  </section>
+
+  <section class="panel">
+    <h2>이 컴퓨터 설정</h2>
+    <div class="grid" style="margin-bottom:12px">
+      <label class="f">컴퓨터 번호
+        <select id="inNum"></select></label>
+      <label class="f">알람 방식
+        <select id="inMode">
+          <option value="tone">악기 음계 (룬 피아노 · 소재비 트럼펫)</option>
+          <option value="speech">한국어 음성</option>
+          <option value="both">악기 음계 + 음성</option>
+        </select></label>
+    </div>
+    <p class="hint" id="who" style="margin:0 0 12px"></p>
+    <div class="row" style="margin-bottom:4px"><label class="chk"><input type="checkbox" id="inEco"> 절전 모드 (사양이 낮은 컴퓨터용)</label></div>
+    <p class="hint" style="margin:0 0 18px">화면 확인을 1초 이상 간격으로, 소재비 탐색과 미리보기 갱신을 줄이고 화면 공유 프레임 수를 낮춥니다. 프레임 수는 화면 공유를 다시 시작하면 적용됩니다.</p>
+    <h2>알림 설정</h2>
+    <div class="row" style="margin-bottom:14px">
+      <label class="chk"><input type="checkbox" id="inRune"> 룬 감지</label>
+      <label class="chk"><input type="checkbox" id="inPotion"> 소형 재물 획득의 비약 종료 알림</label>
+    </div>
+    <div class="grid">
+      <label class="f">소리 크기 <span class="v" id="vVol"></span>
+        <input type="range" id="inVol" min="0" max="1" step="0.05"></label>
+      <label class="f">룬 알람 반복 횟수 (0 = 룬이 사라질 때까지) <span class="v" id="vRepeatR"></span>
+        <input type="range" id="inRepeatR" min="0" max="30" step="1"></label>
+      <label class="f">룬 알람 반복 간격(초) <span class="v" id="vGapR"></span>
+        <input type="range" id="inGapR" min="1" max="15" step="1"></label>
+      <label class="f">소재비 알람 반복 횟수 (0 = 계속) <span class="v" id="vRepeatP"></span>
+        <input type="range" id="inRepeatP" min="0" max="30" step="1"></label>
+      <label class="f">소재비 알람 반복 간격(초) <span class="v" id="vGapP"></span>
+        <input type="range" id="inGapP" min="1" max="15" step="1"></label>
+      <label class="f">확인 주기(ms) <span class="v" id="vInt"></span>
+        <input type="range" id="inInt" min="250" max="2000" step="250"></label>
+      <label class="f">룬이 같은 자리에 보여야 하는 시간(초) <span class="v" id="vStable"></span>
+        <input type="range" id="inStable" min="1" max="8" step="0.5"></label>
+      <label class="f">소재비가 사라진 뒤 알람까지(초) <span class="v" id="vAbs"></span>
+        <input type="range" id="inAbs" min="1" max="10" step="0.5"></label>
+    </div>
+    <div class="row" style="margin-top:14px">
+      <button id="btnTestRune">룬 소리 테스트</button>
+      <button id="btnTestPotion">소재비 소리 테스트</button>
+    </div>
+  </section>
+
+  <section class="panel">
+    <details>
+      <summary>스크린샷으로 감지 테스트</summary>
+      <p class="hint" style="margin-bottom:10px">게임 화면 캡처를 올리면 룬 표식과 소재비 아이콘을 찾는지 바로 확인할 수 있습니다. 화면 전체 캡처가 아니라 미니맵만 잘라낸 이미지는 룬 표식만 확인됩니다.</p>
+      <input type="file" id="inFile" accept="image/*">
+      <p class="log" id="testLog"></p>
+    </details>
+  </section>
+
+  <section class="panel">
+    <details>
+      <summary>사용 방법</summary>
+      <ol class="steps">
+        <li>「화면 공유 시작」을 누르고 메이플 창(또는 모니터 전체)을 선택합니다.</li>
+        <li>미니맵은 화면 왼쪽 위, 버프 줄은 오른쪽 위에 보이게 두세요. 게임 UI를 옮겼다면 알려주세요.</li>
+        <li>이 탭은 닫지 말고 게임 창으로 가서 플레이하면 됩니다. 소리는 계속 납니다.</li>
+        <li>소재비는 아이콘을 한 번 확인한 뒤에 감시를 시작하고, 아이콘이 사라지면 알람이 울립니다. 버프 줄에서 위치가 바뀌어도 찾아냅니다.</li>
+        <li>게임이 전체화면(독점)이면 공유 화면이 검게 나올 수 있습니다. 창 모드나 전체 창 모드를 사용하세요.</li>
+      </ol>
+    </details>
+  </section>
+</main>
+
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const KEY = "rune-alert-v2";
+  const DEF = { vol: 0.6, repeatR: 5, gapR: 3, repeatP: 3, gapP: 3, interval: 500, absent: 3, stable: 3, rune: true, potion: true, num: 1, mode: "tone", eco: false };
+  const S = Object.assign({}, DEF);
+  try { Object.assign(S, JSON.parse(localStorage.getItem(KEY) || "{}")); } catch (e) {}
+  /* 이전 버전의 공통 설정(repeat, gap)을 룬 설정으로 이어받고, 소재비는 0(계속)이었다면 3회로 시작 */
+  { let old = {}; try { old = JSON.parse(localStorage.getItem(KEY) || "{}"); } catch (e) {}
+    if (old.repeatR === undefined && old.repeat !== undefined) S.repeatR = old.repeat;
+    if (old.gapR === undefined && old.gap !== undefined) S.gapR = old.gap;
+    if (old.repeatP === undefined && old.repeat) S.repeatP = old.repeat;
+    if (old.gapP === undefined && old.gap !== undefined) S.gapP = old.gap; }
+  const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} };
+
+  /* 화면에서 볼 구간 (프레임 크기에 대한 비율) */
+  const FRAME_ROI = { x: 0, y: 0, w: 0.30, h: 0.34 };      /* 미니맵 칸을 찾는 구간 */
+  const RUNE_ROI = { x: 0, y: 0, w: 0.26, h: 0.29 };       /* 칸을 못 찾았을 때 쓰는 넓은 구간 */
+  const POT_ROI = { x: 0.5, y: 0, w: 0.5, h: 0.26 };
+  const POT_A = "iVBORw0KGgoAAAANSUhEUgAAAB0AAAAeCAIAAABfZYL2AAAJP0lEQVR4nCXCeXCU5R0A4N97fN9+e2WPZDchIbA5NmeTkEQhXBVEDiOIx4DYdkZtq7a1tYx1wA46g7RC/QentXTGtjp1FGjBQQFNWihRrgAJVwhnyLlJdjfZHMse3+53vO/bP/rMgzZu2pLy5q1f/0TCnevy+Xois/2RWOj8CdF77unlj7zywk8FZ8A4AMKIYwAMiCAkAJnAOWNWgQghWSIEBiGEEJwIkARCBcGKX/xln8vlsiieUGisK56dAik+cN0YuFyb66u3eV584QUsdASAOEcABBAGMDgfGR879tVROatjjFMScIweW7WytqaGAsiAqURwTVnQMI0LfcP3+vvjVFEBIWJWtiyZ6y84/uk/Lce+eX7tSkoIFgIhxBEwBINjoa9P/mc0MaNzkxCKkjo3zZMdHUzwxvp6JhBlzJwaD6uq2tZ5RnY6GE6k1FRejqtwfqlsd5Lahr0f/X3zimWyBWMEBCEdo/7Rkf+eOz00PbF8w7pRkU3FpmyxB3M8ebd6e050nKKSVFddTYvmFn/52f54fDZjc9oLiYaMPHdOdXnQ5cwZH48odsXu9965caO5oYZabBKVBIKL5y+c6+p65rWXL166dLPvjkNVsWoW5Pnr6+pCoeEjR45YN2/Bv9u+Y+p8d+pKL7181z8Qa3LlraytqS4qxAwIgtL68uDmDbt/8/pw16mpkeHI8HgmnpQEVgW/lp3puHs9dOLM3rd//8lHf5MxuXrlcrCiQpYtf9z7AQ0EAocO/UsIse4HLy18uLl0TYtup/3DI7Mz8WBpICN0pKmexRXb39o1njaRpPzs9V9xmeiarsem1LOdkmQ1mZlIJt95d+eePe/dvn3LZXMIIdDd+0M5JjYMI6nPbtu+Lb+l2V9RXpqTagkgU8tGBvpcbs/+zj4G+Nqstbi6cbKn92pbu25ovpLih9asuTY6kL529ZP3/1xZGtzz7i4s1ByXY3Aoiu70DToNJAA4VsOR8fc//uu5K91rFxc/31ppVyw+q6Xju9OuZc8m05mDXWP2/Pk5HNKRiUQinsmqlfV1l0f6Br/+ep6S51DsdtmsKpubSGkGkyjnPK1mrFYLJtjv9z+cn7L4RxP34vun9Pq6YH6eWd+y4bSn/masP61FzLGIs7DQX1YCkxPZWFg1NSfCix5vdWb4dDQ6PjRsDEZKivNlXaMII0WRAATGCAACPinrx3JufRJX3ei5+/Irq4tLKrp7ov5A7Tp/IBWNhsZGp3VNcdgsaausWCSEPQVzcrJGRsvMw2WJ2HRoPJxrJxQBIoRwzjnjgKCokE4NEX9ZaZIEO69cSObM67gbGYvNfm/RglLwaS4nozwWn0FYOH0uapdsNllRqEMyvbmySUHoenxiNs8+jwoQjDGEEGMMAPJysceFMBZMcA3RaYt/RM9wanJqJuMphaBAsARNyJOTUZffrapqIFCkKIojO+Ww+mLDcQtWQLdaJBcGAA6ICeACBCAsuf1F8335+fkFc2uqahPhyWUNTdXuPAhPUE2TBMdZTTaZV7HlKjYzkawJlubm2HnGcFAlz+lxW3NkLHPgVAAwhACAA0YIY1tZXYsi5TRm6BKGpLd37Dj8xeEtgarrPT2+hjqD68lQyC74HJcrFgsXyorPSmZCMReSIGPilOAPGDbB5CoFAAGA/h9jjDgGJoCl06mZ2VlJsWqm7vV4GusbdMQjE2Gv20EkOjw8lErNNjc26BlVTSU2PLrKJsnazPR0NHyj9+apjouUG7rGGMaYEgoIGalR6hzFtLq97cuPP9v/+q4dlwZuBV1eqxBjoctV5UWmSF27cdWiZ1sa6zBEHXZb1ilw6v5IeAxScT0Rd6jxCkWmq1Y/BrqBAFFKPvzwT/JkhOdO5Ds102R9d/q3vfpLoEAy+OCBT5YsXRKODkej0YpgRUGBPzYVIYS4XG7GGSCkKEpq1sxms7quZzI6PX78OGdMJgQjeG/3nhVLa0orf/R5+7W792Y6z14iBAAL0JK/37mrpimwfMXixqpHqeyW6QM5PX7vTk9ZVpMHh7J2xVTTssqwTmdBzkoyal2/HgBhAITx2nXrrl/vHujve+ihlsKCko5T31HEAAFi6U3PPXPw0KEnNqxcsarVFHZhjuvJ87d6elE45fF6Jh9MJ9Npi25ANmNIOQNTBDc1Ny9ZurR54cLOzotV1dUP4qlvvz0nuMgv8N663VNeWd7277ajbSdqmxdlsiKTYBYRk83LOHlLG5s0ojGPpBvTo3kWR2VhiddTqDJL7/3JyaSgmzZvoRIVnH/6j88ooRgTBEgIjpAxZ4736Wef+uLI4ZHxkMASBhQdj/XdvJhRb2jxjCVNPES2oozTRjJM6A/UjGo43PnmmD6T0mhaVdvb2glCra3rrl694vd7gxVlXHCTs9h0rK29DROCKQUuEMKJVLbv9qgaH3NZ5UK7xe5QtEyyoq6662q4f3CU2txAnV5f0bziCnr2zJkLnReZYb740g9Pnjy5evXSPJ9zOp4eCUfnlpZc6L4wr2ReWbCcUsI4sju9yDAVvaB0vt9tiRrAbSXzU9TIYGH1utOmIzypFpfXtj63hX7TfuKdHTs0TXt/97tbt26tri5pbmo4dqz9Zu/NN7dtxxQMXScmUSyKZmj3+/uyLrCxuCNHpoXygsWLZpITXd3d5y4OBgIV9wanFjQ9/OSmjSaV6KYfv7F61UpA6Mj+/cX5hanZrM1qfWLtRi37VevKNRhjzhnG9OjRo4ZpfHvmtN0iNdXXFC2oGgccuZQOhSODQ8alu6zjWs+v39i6dt3jAjDlGGGSz9kEICphISNqAP/tW9uFEO/9YQ9jHAAQIgihAwcO7Ptw38YnN65//LEjhw9+sHcvNwxKgGNhGHD48IHS0hJEKSBgJkeCoM+P9WToFONcZk5u8o/27V72/YXC4N3nL7325nZGnIZhACIf7Nz5k5+/umjpYplANpXIpJJUcACBkQABPr/PYrEYps4ZE4gbTEfVDU8xGgNKUdYqsBQJXX9k9XLB8dkTp4qKA4K4BedAaFPLkroFtVargrlBkSAgJMEAADjTdV0IIcsyxkAIxhSbQkc+2ZE0NcCYMAyYIJ71FfiEQFPRCQFIIEkACIRKKiotFlkIjkEQBBgEFQAgQAjBOQLABAMAxkgmSMbif5nGxgr76dvOAAAAAElFTkSuQmCC";
+  const POT_B = "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UEoppVouQwgxVDWWU5RsFgAcDsfly99Qp9N54cKFWCzm9XptkjQyOrL83nuDkxOMGZzDJ8eOTU3fBow5gMm4pumxWGw8FPB6PIaiSU5LNpOprK5WFXV4aFjXdIJRNBpduXIlvnLlyvnz58+ePet0uwglcjL5zI7tzXPnnj59+q6ldw0MD1mcjkVL7ywpL9NMw+F0lJaV5RSttq6+otivJNPzquZUeAsdWCjJy89zumZmYrIs79y5k771zv4nf76qvn7OkSOHnQ577+YeU9N/+Yttv/r1M6+++jtsdTAABLyosODY0U8ycubm2NjoyKiqKIWSs7OjQxIs46Oj3167mlUUTMj09PTefXsNw0R9R75947dbr137attTWx5/bBVwTimR7PbArcjqx1bLSVkUraZpPP30NofT8fvXX3d73A6XtH7dusaaWsZYOBwOBkPXrl4dHRu9s71918svY4QIoais8kfhycsg6BgQ5kAQLFiwYNeul7ofeJhTzjRGqYUxs7d3s8fjvnH9uz1790zHol1dXcTkAiUYY9M0e3s39/T0MM4sNhtnHADob/6yB3SGEBYYFhi5+N8zX579t448xJr39rvv6kTEVBAEcvzIx/K0vGP3PlV0uArEYye/AADgHAHGgBwupynZGeNZwIgA5xzVt94FjCJEECOI41RyRpL4uk09L73wfH19DaMSIgJCrKq25o7Fi/z+UmAmYZogCIIgKIpi6AYlAgfOASgVTIMxxgAAtXnECQXSOgJACBBCTLJb/P7yocEh4AwwBYSA88LiooLCQvzDkTOEMcbYMAzOOEaIAwAAwtjkHHEuYPg/EP2wbqBljuYAAAAASUVORK5CYII=";
+
+  /* ---------- 룬 감지: 밝은 보라 속색 + 마름모 모양 + 좌우·상하 대칭 ---------- */
+  /* ---------- 미니맵 칸 찾기: 흰색 둥근 테두리의 위·아래 가로선 ---------- */
+  function findMinimapFrame(d, w, h, fw, fh) {
+    const minRun = fw * 0.05, maxRun = fw * 0.24, edges = [];
+    for (let y = 0; y < h; y++) {
+      let run = 0, xs = 0;
+      for (let x = 0; x <= w; x++) {
+        let white = false;
+        if (x < w) { const p = (y * w + x) * 4, r = d[p], g = d[p + 1], b = d[p + 2], mn = Math.min(r, g, b); white = mn >= 205 && Math.max(r, g, b) - mn < 50; }
+        if (white) { if (!run) xs = x; run++; }
+        else { if (run >= minRun && run <= maxRun) edges.push({ y, xs, xe: xs + run - 1 }); run = 0; }
+      }
+    }
+    const groups = [];
+    for (const e of edges) {
+      const g = groups.find((q) => e.y - q.ye <= 2 && Math.abs(e.xs - q.xs) <= 8);
+      if (g) { g.ye = e.y; g.xs = Math.min(g.xs, e.xs); g.xe = Math.max(g.xe, e.xe); } else groups.push({ y: e.y, ye: e.y, xs: e.xs, xe: e.xe });
+    }
+    const minH = fh * 0.05, maxH = fh * 0.28;
+    for (let i = 0; i < groups.length; i++) for (let j = i + 1; j < groups.length; j++) {
+      const A = groups[i], B = groups[j], dy = B.y - A.y;
+      if (dy < minH || dy > maxH) continue;
+      if (Math.abs(A.xs - B.xs) > 10 && Math.abs(A.xe - B.xe) > 10) continue;
+      const x0 = Math.min(A.xs, B.xs), x1 = Math.max(A.xe, B.xe), inset = 3;
+      return { x: x0 + inset, y: A.y + inset, w: x1 - x0 + 1 - inset * 2, h: B.ye - A.y + 1 - inset * 2 };
+    }
+    return null;
+  }
+
+  function detectRune(d, w, h, fw) {
+    const n = w * h, mask = new Uint8Array(n);
+    for (let i = 0, p = 0; i < n; i++, p += 4) {
+      const r = d[p], g = d[p + 1], b = d[p + 2];
+      const mx = Math.max(r, g, b), mn = Math.min(r, g, b), dl = mx - mn;
+      if (mx < 150 || dl < mx * 0.3) continue;          /* 어둡거나 탁한 색은 제외 */
+      let hh;
+      if (mx === r) hh = ((g - b) / dl) % 6; else if (mx === g) hh = (b - r) / dl + 2; else hh = (r - g) / dl + 4;
+      hh *= 60; if (hh < 0) hh += 360;
+      if (hh >= 268 && hh <= 312) mask[i] = 1;          /* 보라~자홍 */
+    }
+    const lab = new Int32Array(n), stack = new Int32Array(n), boxes = [], cands = [];
+    const minSz = Math.max(4, fw * 0.0035), maxSz = fw * 0.016;
+    let id = 0, total = 0;
+    for (let s = 0; s < n; s++) {
+      if (!mask[s] || lab[s]) continue;
+      id++; let sp = 0; stack[sp++] = s; lab[s] = id;
+      let area = 0, x0 = w, x1 = 0, y0 = h, y1 = 0;
+      while (sp) {
+        const i = stack[--sp], x = i % w, y = (i / w) | 0;
+        area++; if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y;
+        for (let dy = -1; dy <= 1; dy++) {
+          const yy = y + dy; if (yy < 0 || yy >= h) continue;
+          for (let dx = -1; dx <= 1; dx++) {
+            const xx = x + dx; if (xx < 0 || xx >= w) continue;
+            const j = yy * w + xx;
+            if (mask[j] && !lab[j]) { lab[j] = id; stack[sp++] = j; }
+          }
+        }
+      }
+      total += area;
+      if (area < 4) continue;
+      const bw = x1 - x0 + 1, bh = y1 - y0 + 1, c = { x: x0, y: y0, w: bw, h: bh, area, why: "" };
+      cands.push(c);
+      if (area < 6 || bw < minSz * 0.55 || bh < minSz * 0.55) { c.why = "너무 작음"; continue; }
+      if (bw > maxSz || bh > maxSz) { c.why = "너무 큼"; continue; }
+      const asp = bw / bh, fill = area / (bw * bh);
+      if (asp < 0.7 || asp > 1.45) { c.why = "가로세로 비율"; continue; }
+      if (fill < 0.4 || fill > 0.95) { c.why = "채움 비율"; continue; }
+      const rowW = new Array(bh).fill(0), colW = new Array(bw).fill(0);
+      for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) if (lab[y * w + x] === id) { rowW[y - y0]++; colW[x - x0]++; }
+      const asym = (a) => { let df = 0, sm = 0; for (let i = 0; i < a.length; i++) { df += Math.abs(a[i] - a[a.length - 1 - i]); sm += a[i]; } return df / sm; };
+      if (asym(rowW) > 0.5 || asym(colW) > 0.5) { c.why = "마름모가 아닌 모양(비대칭)"; continue; }
+      const mxR = Math.max(...rowW), mxC = Math.max(...colW);
+      const mr = rowW.indexOf(mxR) / (bh - 1), mc = colW.indexOf(mxC) / (bw - 1);
+      if (mr < 0.2 || mr > 0.8 || mc < 0.2 || mc > 0.8) { c.why = "마름모가 아닌 모양(중심)"; continue; }
+      if (Math.min(rowW[0], rowW[bh - 1]) > 0.8 * mxR || Math.min(colW[0], colW[bw - 1]) > 0.8 * mxC) { c.why = "마름모가 아닌 모양(끝이 뭉툭)"; continue; }
+      c.ok = true; boxes.push({ x: x0, y: y0, w: bw, h: bh, area });
+    }
+    return { boxes, core: total, cands };
+  }
+
+  /* ---------- 소재비 아이콘: 밝기 무늬(병 윤곽) 비교. 색이나 금색 여부는 보지 않음 ---------- */
+  /* 시간이 지나 아이콘이 회색으로 바뀌어도 병 윤곽은 남으므로, 끝날 때까지 같은 방식으로 찾는다.
+     남은 시간 숫자가 겹치는 가운데·왼쪽 아래는 비교에서 제외한다. 은빛 병이든 금빛 병이든 병이 하나라도 있으면 "있음". */
+  const TPL = { imgs: [], cache: new Map() };
+  async function loadTemplate() {
+    for (const b64 of [POT_A, POT_B]) {
+      const im = new Image(); im.src = "data:image/png;base64," + b64; await im.decode();
+      const c = document.createElement("canvas"); c.width = im.naturalWidth; c.height = im.naturalHeight;
+      c.getContext("2d").drawImage(im, 0, 0); TPL.imgs.push(c);
+    }
+  }
+  const TPL_FW = 1420;                                   /* 템플릿을 딴 화면의 가로 크기 */
+  const RELS = [0.82, 0.92, 1.02, 1.12, 1.24];
+  function lumBlur(d, w, h) {
+    const n = w * h, g = new Float32Array(n), t = new Float32Array(n), o = new Float32Array(n);
+    for (let i = 0, p = 0; i < n; i++, p += 4) g[i] = 0.299 * d[p] + 0.587 * d[p + 1] + 0.114 * d[p + 2];
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      const xm = x > 0 ? x - 1 : x, xp = x < w - 1 ? x + 1 : x, r = y * w;
+      t[r + x] = (g[r + xm] + 2 * g[r + x] + g[r + xp]) / 4;
+    }
+    for (let y = 0; y < h; y++) {
+      const ym = (y > 0 ? y - 1 : y) * w, yp = (y < h - 1 ? y + 1 : y) * w, r = y * w;
+      for (let x = 0; x < w; x++) o[r + x] = (t[ym + x] + 2 * t[r + x] + t[yp + x]) / 4;
+    }
+    return o;
+  }
+  function makeSet(g, nw, nh, step) {
+    const X = [], Y = [], V = [];
+    for (let y = 0; y < nh; y++) for (let x = 0; x < nw; x++) {
+      if (y >= nh * 0.25 && y < nh * 0.8 && x >= nw * 0.05 && x < nw * 0.95) continue;   /* 가운데 숫자 */
+      if (y >= nh * 0.55 && x < nw * 0.58) continue;                                      /* 왼쪽 아래 분 숫자 */
+      if (step > 1 && (x + y) % step !== 0) continue;
+      X.push(x); Y.push(y); V.push(g[y * nw + x]);
+    }
+    const n = V.length; let m = 0; V.forEach((v) => { m += v; }); m /= n;
+    const T = new Float32Array(n); let norm = 0;
+    for (let i = 0; i < n; i++) { T[i] = V[i] - m; norm += T[i] * T[i]; }
+    return { n, X: Int32Array.from(X), Y: Int32Array.from(Y), T, norm };
+  }
+  function tplFor(key, size) {
+    const ck = key + ":" + size;
+    if (TPL.cache.has(ck)) return TPL.cache.get(ck);
+    const src = TPL.imgs[key], nw = size, nh = Math.round(size * src.height / src.width);
+    const c = document.createElement("canvas"); c.width = nw; c.height = nh;
+    const cx = c.getContext("2d", { willReadFrequently: true }); cx.imageSmoothingEnabled = true; cx.imageSmoothingQuality = "high";
+    cx.drawImage(src, 0, 0, nw, nh);
+    const g = lumBlur(cx.getImageData(0, 0, nw, nh).data, nw, nh);
+    const t = { tw: nw, th: nh, full: makeSet(g, nw, nh, 1), sparse: makeSet(g, nw, nh, 3) };
+    TPL.cache.set(ck, t); return t;
+  }
+  function nccG(g, w, ox, oy, s) {
+    let sg = 0, sq = 0, dot = 0; const n = s.n, X = s.X, Y = s.Y, T = s.T;
+    for (let k = 0; k < n; k++) { const v = g[(oy + Y[k]) * w + ox + X[k]]; sg += v; sq += v * v; dot += v * T[k]; }
+    const vr = sq - sg * sg / n;
+    return vr < 1 ? -1 : dot / Math.sqrt(vr * s.norm);
+  }
+  function halfOf(g, w, h) {
+    const w2 = w >> 1, h2 = h >> 1, o = new Float32Array(w2 * h2);
+    for (let y = 0; y < h2; y++) for (let x = 0; x < w2; x++) { const i = 2 * y * w + 2 * x; o[y * w2 + x] = (g[i] + g[i + 1] + g[i + w] + g[i + w + 1]) / 4; }
+    return { g: o, w: w2, h: h2 };
+  }
+  function tplHalf(key, size) {
+    const ck = "h" + key + ":" + size;
+    if (TPL.cache.has(ck)) return TPL.cache.get(ck);
+    const src = TPL.imgs[key], nw = Math.max(8, Math.round(size / 2)), nh = Math.max(8, Math.round(nw * src.height / src.width));
+    const c = document.createElement("canvas"); c.width = nw; c.height = nh;
+    const cx = c.getContext("2d", { willReadFrequently: true }); cx.imageSmoothingEnabled = true; cx.imageSmoothingQuality = "high";
+    cx.drawImage(src, 0, 0, nw, nh);
+    const t = { tw: nw, th: nh, set: makeSet(lumBlur(cx.getImageData(0, 0, nw, nh).data, nw, nh), nw, nh, 1) };
+    TPL.cache.set(ck, t); return t;
+  }
+  /* 1단계: 절반 크기 화면에서 전체를 훑어 후보를 고르고, 2단계: 원래 크기에서 후보 주변만 정밀 비교 */
+  function coarse(H, size, x0, y0, x1, y1, out) {
+    const t = tplHalf(0, size);
+    for (let y = Math.max(0, y0 >> 1); y <= Math.min(y1 >> 1, H.h - t.th); y++) for (let x = Math.max(0, x0 >> 1); x <= Math.min(x1 >> 1, H.w - t.tw); x++) {
+      const sc = nccG(H.g, H.w, x, y, t.set); if (sc > 0.4) out.push({ score: sc, x: x * 2, y: y * 2, size });
+    }
+  }
+  function pickTop(list, n) {
+    list.sort((a, b) => b.score - a.score); const sel = [];
+    for (const c of list) { if (sel.every((q) => Math.abs(q.x - c.x) > 10 || Math.abs(q.y - c.y) > 10)) sel.push(c); if (sel.length >= n) break; }
+    return sel;
+  }
+  function refinePos(g, w, h, c) {
+    let best = { score: -1, x: c.x, y: c.y, key: 0, size: c.size, w: 0, h: 0 };
+    const near = [c.size - 2, c.size, c.size + 2].filter((s) => s >= 14);
+    for (const size of near) for (let key = 0; key < TPL.imgs.length; key++) {
+      const t = tplFor(key, size);
+      for (let dy = -3; dy <= 3; dy++) for (let dx = -3; dx <= 3; dx++) {
+        const x = c.x + dx, y = c.y + dy; if (x < 0 || y < 0 || x + t.tw > w || y + t.th > h) continue;
+        const sc = nccG(g, w, x, y, t.full); if (sc > best.score) best = { score: sc, x, y, key, size, w: t.tw, h: t.th };
+      }
+    }
+    return best;
+  }
+  function potSizes(fw) { return RELS.map((r) => Math.max(14, Math.round(TPL.imgs[0].width * fw / TPL_FW * r))); }
+  /* last: 직전에 찾은 위치 (있으면 그 주변부터 빠르게 확인) */
+  function findPotion(d, w, h, fw, last) {
+    const g = lumBlur(d, w, h), H = halfOf(g, w, h), sizes = potSizes(fw);
+    const run = (x0, y0, x1, y1, ss, n) => {
+      const list = []; ss.forEach((s) => coarse(H, s, x0, y0, x1, y1, list));
+      let best = { score: -1, x: 0, y: 0, key: 0, size: sizes[0], w: 0, h: 0 };
+      pickTop(list, n).forEach((c) => { const r = refinePos(g, w, h, c); if (r.score > best.score) best = r; });
+      return best;
+    };
+    if (last) {
+      const near = sizes.filter((s) => Math.abs(s - last.size) <= Math.max(4, last.size * 0.2));
+      const r = run(last.x - 160, last.y - 30, last.x + 160, last.y + 30, near, 3);
+      if (r.score >= POT_TRACK) { r.tracked = true; return r; }
+    }
+    return run(0, 0, w, h, sizes, 5);
+  }
+  const POT_T = 0.78, POT_TRACK = 0.72;       /* 처음 찾을 때 / 이미 따라가는 중일 때의 기준 */
+
+  /* ---------- 소리 ---------- */
+  let actx = null;
+  function audio() {
+    try {
+      if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
+      if (actx.state === "suspended") actx.resume();
+    } catch (e) { actx = null; }
+    return actx;
+  }
+  function tones(freqs, step, vol, type) {
+    const c = audio(); if (!c || vol <= 0) return;
+    const t0 = c.currentTime + 0.02;
+    freqs.forEach((f, i) => {
+      const o = c.createOscillator(), g = c.createGain();
+      o.type = type || "sine"; o.frequency.value = f;
+      const t = t0 + i * step;
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(Math.max(0.001, vol), t + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + step * 0.92);
+      o.connect(g); g.connect(c.destination); o.start(t); o.stop(t + step);
+    });
+  }
+  /* 컴퓨터 번호 1~8 = 도 레 미 파 솔 라 시 높은도. 룬은 피아노, 소재비는 트럼펫 소리로 같은 음을 두 번 친다 */
+  const NOTE_NAMES = ["도", "레", "미", "파", "솔", "라", "시", "높은 도"], SEMI = [0, 2, 4, 5, 7, 9, 11, 12];
+  const PIANO_BASE = 261.63, TRUMPET_BASE = 261.63;       /* 둘 다 C4 (음색으로 구분) */
+  const noteHz = (n, base) => base * Math.pow(2, SEMI[Math.min(8, Math.max(1, n)) - 1] / 12);
+  function playPiano(c, t, f, vol) {
+    const out = c.createGain(); out.gain.value = vol * 1.0; out.connect(c.destination);
+    [[1, 1], [2, 0.55], [3, 0.3], [4, 0.18], [5, 0.1], [6, 0.05]].forEach(([p, a]) => {
+      const o = c.createOscillator(), g = c.createGain(), dec = 1.4 / Math.pow(p, 0.6);
+      o.type = "sine"; o.frequency.value = f * p;
+      g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(a * 0.5, t + 0.006); g.gain.exponentialRampToValueAtTime(0.0001, t + dec);
+      o.connect(g); g.connect(out); o.start(t); o.stop(t + dec + 0.05);
+    });
+  }
+  function playTrumpet(c, t, f, vol) {
+    const out = c.createGain(); out.gain.value = vol * 0.7; out.connect(c.destination);
+    const lp = c.createBiquadFilter(); lp.type = "lowpass"; lp.Q.value = 1.2;
+    lp.frequency.setValueAtTime(f * 2, t); lp.frequency.exponentialRampToValueAtTime(f * 7, t + 0.07); lp.frequency.exponentialRampToValueAtTime(f * 4, t + 0.4);
+    const env = c.createGain();
+    env.gain.setValueAtTime(0.0001, t); env.gain.exponentialRampToValueAtTime(1, t + 0.04); env.gain.setValueAtTime(1, t + 0.3); env.gain.exponentialRampToValueAtTime(0.0001, t + 0.46);
+    [["sawtooth", 0.8], ["square", 0.25]].forEach(([type, a]) => { const o = c.createOscillator(), g = c.createGain(); o.type = type; o.frequency.value = f; g.gain.value = a * 0.5; o.connect(g); g.connect(lp); o.start(t); o.stop(t + 0.5); });
+    lp.connect(env); env.connect(out);
+  }
+  function playTone(kind) {
+    const c = audio(); if (!c || S.vol <= 0) return;
+    const t = c.currentTime + 0.03;
+    if (kind === "rune") { const f = noteHz(S.num, PIANO_BASE); playPiano(c, t, f, S.vol); playPiano(c, t + 0.32, f, S.vol); }
+    else { const f = noteHz(S.num, TRUMPET_BASE); playTrumpet(c, t, f, S.vol); playTrumpet(c, t + 0.55, f, S.vol); }
+  }
+  function say(text) {
+    try {
+      if (!("speechSynthesis" in window)) return false;
+      const vs = speechSynthesis.getVoices();
+      if (vs.length && !vs.some((v) => /^ko/i.test(v.lang))) return false;      /* 한국어 음성이 없으면 소리로 대신 */
+      const u = new SpeechSynthesisUtterance(text); u.lang = "ko-KR"; u.volume = Math.min(1, S.vol * 1.2);
+      speechSynthesis.cancel(); speechSynthesis.speak(u); return true;
+    } catch (e) { return false; }
+  }
+  function ringKind(kind) {
+    const label = kind === "rune" ? "룬 발견" : "소재비 종료";
+    if (S.mode !== "speech") playTone(kind);
+    if (S.mode === "both") setTimeout(() => say(S.num + "번 컴퓨터 " + label), 1300);
+    else if (S.mode === "speech" && !say(S.num + "번 컴퓨터 " + label)) playTone(kind);
+  }
+  const ringRune = () => ringKind("rune"), ringPotion = () => ringKind("potion");
+
+  /* ---------- 화면 공유 · 스캔 ---------- */
+  const ivl = () => (S.eco ? Math.max(S.interval, 1000) : S.interval);
+  const video = document.createElement("video"); video.muted = true; video.playsInline = true;
+  const pv = $("preview"), pctx = pv.getContext("2d");
+  const offR = document.createElement("canvas"), cR = offR.getContext("2d", { willReadFrequently: true });
+  const offP = document.createElement("canvas"), cP = offP.getContext("2d", { willReadFrequently: true });
+  const tiny = document.createElement("canvas"); tiny.width = 32; tiny.height = 18;
+  const cT = tiny.getContext("2d", { willReadFrequently: true });
+  let stream = null, worker = null, fallbackTimer = null, scans = 0;
+
+  const rune = { hist: [], miss: 0, active: false, muted: false, ring: 0, next: 0, boxes: [], core: 0, cands: [], pos: null, cand: null, frame: null, frameCand: null, frameFails: 0, frameAt: 0, fb: null };
+  const pot = { seen: false, run: 0, last: null, absentSince: 0, alarm: false, muted: false, ring: 0, next: 0, lastScan: 0, score: 0, info: null };
+  let prevTiny = null, lastBad = 0, lastDraw = 0;
+  const TITLE0 = "룬 알리미", baseTitle = () => S.num + "번 · " + TITLE0;
+
+  const px = (roi, W, H) => ({ x: Math.round(roi.x * W), y: Math.round(roi.y * H), w: Math.round(roi.w * W), h: Math.round(roi.h * H) });
+
+  function sceneCheck() {
+    cT.drawImage(video, 0, 0, 32, 18);
+    const d = cT.getImageData(0, 0, 32, 18).data, lum = new Float32Array(576); let mean = 0;
+    for (let i = 0; i < 576; i++) { lum[i] = d[i * 4] * 0.3 + d[i * 4 + 1] * 0.59 + d[i * 4 + 2] * 0.11; mean += lum[i]; }
+    mean /= 576; let diff = 0;
+    if (prevTiny) { for (let i = 0; i < 576; i++) diff += Math.abs(lum[i] - prevTiny[i]); diff /= 576; }
+    prevTiny = lum;
+    return mean < 12 || diff > 28;      /* 암전·맵 이동처럼 화면이 통째로 바뀌는 순간 */
+  }
+
+  function scan() {
+    if (!stream || !video.videoWidth) return;
+    const now = performance.now(), W = video.videoWidth, H = video.videoHeight;
+    scans++;
+    const bad = sceneCheck();
+    if (bad) lastBad = now;
+    const sceneOK = now - lastBad > 1500;
+
+    if (S.rune) {
+      const r = px(FRAME_ROI, W, H); offR.width = r.w; offR.height = r.h;
+      cR.drawImage(video, r.x, r.y, r.w, r.h, 0, 0, r.w, r.h);
+      if (now - rune.frameAt >= 1000) { rune.frameAt = now; updateFrame(cR.getImageData(0, 0, r.w, r.h).data, r.w, r.h, W, H); }
+      const wide = px(RUNE_ROI, W, H);
+      const fb = rune.frame || { x: 0, y: 0, w: Math.min(wide.w, r.w), h: Math.min(wide.h, r.h) };
+      rune.fb = { x: r.x + fb.x, y: r.y + fb.y, w: fb.w, h: fb.h };
+      const res = detectRune(cR.getImageData(fb.x, fb.y, fb.w, fb.h).data, fb.w, fb.h, W);
+      rune.boxes = res.boxes.map((b) => ({ x: rune.fb.x + b.x, y: rune.fb.y + b.y, w: b.w, h: b.h })); rune.core = res.core; rune.cands = res.cands;
+      const b0 = rune.boxes[0];
+      feedRune(!!b0, b0 && { x: b0.x + b0.w / 2, y: b0.y + b0.h / 2 }, now, now - lastBad < 3000, W);
+    }
+    if (S.potion && TPL.imgs.length === 2 && now - pot.lastScan >= (pot.seen || pot.last ? (S.eco ? 2000 : 1000) : (S.eco ? 6000 : 2500))) {
+      pot.lastScan = now;
+      const r = px(POT_ROI, W, H); offP.width = r.w; offP.height = r.h;
+      cP.drawImage(video, r.x, r.y, r.w, r.h, 0, 0, r.w, r.h);
+      const m = findPotion(cP.getImageData(0, 0, r.w, r.h).data, r.w, r.h, W, pot.last);
+      pot.score = m.score;
+      const found = m.score >= (m.tracked ? POT_TRACK : POT_T);
+      pot.info = found ? { x: r.x + m.x, y: r.y + m.y, w: m.w, h: m.h } : null;
+      if (found) pot.last = { x: m.x, y: m.y, size: m.size };
+      feedPotion(found, now, sceneOK);
+    }
+    ringTick(now);
+    if (!document.hidden && (!S.eco || now - lastDraw >= 3000)) { lastDraw = now; drawPreview(W, H); }   /* 탭이 가려져 있으면 그리지 않음 */
+    render(now);
+  }
+
+  function updateFrame(d, w, h, W, H) {
+    const f = findMinimapFrame(d, w, h, W, H);
+    if (!f) { if (++rune.frameFails > 15) { rune.frame = null; rune.frameCand = null; } return; }
+    const near = (a, b) => Math.abs(a.x - b.x) <= 4 && Math.abs(a.y - b.y) <= 4 && Math.abs(a.w - b.w) <= 6 && Math.abs(a.h - b.h) <= 6;
+    if (rune.frameCand && near(f, rune.frameCand)) rune.frame = f;      /* 두 번 연속 같은 크기로 보이면 확정 */
+    rune.frameCand = f; rune.frameFails = 0;
+  }
+  /* 룬은 한 번 뜨면 제자리에 계속 있으므로, 같은 자리에서 일정 시간 이상 보일 때만 알람을 낸다 */
+  function feedRune(hit, pos, now, recentBad, fw) {
+    const tol = Math.max(4, fw * 0.003), c = rune.cand;
+    if (hit) {
+      rune.miss = 0;
+      if (c && Math.hypot(pos.x - c.pos.x, pos.y - c.pos.y) <= tol) { c.gap = 0; }
+      else {
+        rune.cand = { pos, since: now, gap: 0 };
+        if (rune.active && recentBad) { rune.active = false; rune.pos = null; }   /* 화면 전환 직후 다른 자리에 보이면 다른 맵의 새 룬 */
+      }
+    } else {
+      rune.miss++;
+      if (recentBad) rune.miss = 999;                  /* 화면이 통째로 바뀐 직후에 안 보이면 맵을 옮긴 것: 이전 룬 상태를 비움 */
+      if (c && ++c.gap > 2) rune.cand = null;
+    }
+    if (!rune.active) {
+      if (rune.cand && hit && now - rune.cand.since >= S.stable * 1000) { rune.active = true; rune.muted = false; rune.ring = 0; rune.next = 0; rune.pos = pos; }
+    } else if (rune.miss >= Math.ceil(4000 / ivl())) {
+      rune.active = false; rune.pos = null; rune.cand = null; rune.miss = 0;
+    }
+  }
+  function feedPotion(found, now, sceneOK) {
+    if (found) {
+      pot.run++; pot.absentSince = 0;
+      if (pot.run >= 3) { pot.seen = true; if (pot.alarm) { pot.alarm = false; pot.ring = 0; } }
+      return;
+    }
+    pot.run = 0;
+    if (!pot.seen) return;
+    if (!sceneOK) { pot.absentSince = 0; return; }
+    if (!pot.absentSince) pot.absentSince = now;
+    if (!pot.alarm && now - pot.absentSince >= S.absent * 1000) {
+      pot.alarm = true; pot.seen = false; pot.muted = false; pot.ring = 0; pot.next = 0; pot.last = null;
+    }
+  }
+  function ringTick(now) {
+    if (rune.active && !rune.muted && now >= rune.next && (S.repeatR === 0 || rune.ring < S.repeatR)) { ringRune(); rune.ring++; rune.next = now + S.gapR * 1000; }
+    if (pot.alarm && !pot.muted && now >= pot.next && (S.repeatP === 0 || pot.ring < S.repeatP)) { ringPotion(); pot.ring++; pot.next = now + S.gapP * 1000; }
+  }
+
+  let flash = 0;
+  function render(now) {
+    const st = $("status"), anyAlarm = rune.active || pot.alarm;
+    $("btnMute").hidden = !anyAlarm;
+    const potTxt = !S.potion ? "소재비 꺼짐" : pot.alarm ? "소재비 종료" : pot.seen ? "소재비 확인됨" : "소재비 아이콘을 찾는 중";
+    const runeTxt = !S.rune ? "룬 꺼짐" : rune.active ? "룬 발견" : "룬 감시 중";
+    if (rune.active) {
+      st.dataset.s = "rune"; $("stLabel").textContent = "룬이 나타났습니다"; $("stMeta").textContent = "알람 " + rune.ring + "회 · " + potTxt;
+    } else if (pot.alarm) {
+      st.dataset.s = "potion"; $("stLabel").textContent = "소형 재물 획득의 비약이 끝났습니다"; $("stMeta").textContent = "알람 " + pot.ring + "회 · " + runeTxt;
+    } else {
+      st.dataset.s = "watch"; $("stLabel").textContent = "감시 중"; $("stMeta").textContent = runeTxt + " · " + potTxt + " · 확인 " + scans + "회";
+    }
+    if (anyAlarm) document.title = (flash++ % 2 ? "🔔 " : "") + (rune.active ? "룬 발견" : "소재비 종료") + " · " + baseTitle(); else document.title = baseTitle();
+    const rc = rune.cands.slice(0, 4).map((c) => c.w + "×" + c.h + (c.ok ? " 룬" : " " + c.why)).join(", ");
+    $("detail").innerHTML = (S.rune ? "미니맵 칸 <b>" + (rune.frame ? "자동 인식됨" : "찾는 중 (넓은 구간으로 감지)") + "</b> · " : "") + "룬 후보 <b>" + rune.cands.length + "</b>개" + (rc ? " (" + rc + ")" : "") + " · 소재비 일치도 <b>" + pot.score.toFixed(2) + "</b> (" + POT_T.toFixed(2) + " 이상이면 인식)";
+  }
+
+  function drawPreview(W, H) {
+    const sc = Math.min(1, 960 / W), cw = Math.round(W * sc), ch = Math.round(H * sc);
+    if (pv.width !== cw || pv.height !== ch) { pv.width = cw; pv.height = ch; }
+    pctx.drawImage(video, 0, 0, cw, ch);
+    pctx.lineWidth = 2; pctx.setLineDash([6, 4]);
+    const dash = (roi, col) => { const r = px(roi, W, H); pctx.strokeStyle = col; pctx.strokeRect(r.x * sc, r.y * sc, r.w * sc, r.h * sc); };
+    if (S.rune && rune.fb) { pctx.strokeStyle = "#ffd84a"; pctx.strokeRect(rune.fb.x * sc, rune.fb.y * sc, rune.fb.w * sc, rune.fb.h * sc); }
+    if (S.potion) dash(POT_ROI, "#4fd8ff");
+    pctx.setLineDash([]); pctx.lineWidth = 3;
+    pctx.strokeStyle = "#ff3df2"; rune.boxes.forEach((b) => pctx.strokeRect(b.x * sc - 5, b.y * sc - 5, b.w * sc + 10, b.h * sc + 10));
+    if (pot.info) { pctx.strokeStyle = "#3dff8a"; pctx.strokeRect(pot.info.x * sc - 2, pot.info.y * sc - 2, pot.info.w * sc + 4, pot.info.h * sc + 4); }
+    $("emptyMsg").hidden = true;
+  }
+
+  $("btnMute").addEventListener("click", () => { rune.muted = true; pot.muted = true; });
+
+  function startTicker() {
+    stopTicker();
+    try {
+      const src = "let t;onmessage=e=>{clearInterval(t);t=setInterval(()=>postMessage(0),e.data)}";
+      worker = new Worker(URL.createObjectURL(new Blob([src], { type: "text/javascript" })));
+      worker.onmessage = scan; worker.postMessage(ivl());
+    } catch (e) { fallbackTimer = setInterval(scan, ivl()); }
+  }
+  function stopTicker() {
+    if (worker) { worker.terminate(); worker = null; }
+    if (fallbackTimer) { clearInterval(fallbackTimer); fallbackTimer = null; }
+  }
+  function resetState() {
+    Object.assign(rune, { hist: [], miss: 0, active: false, muted: false, ring: 0, next: 0, boxes: [], core: 0, cands: [], pos: null, cand: null, frame: null, frameCand: null, frameFails: 0, frameAt: 0, fb: null });
+    Object.assign(pot, { seen: false, run: 0, last: null, absentSince: 0, alarm: false, muted: false, ring: 0, next: 0, lastScan: 0, score: 0, info: null });
+    prevTiny = null; lastBad = 0; scans = 0;
+  }
+
+  async function start() {
+    audio();
+    try {
+      stream = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: S.eco ? { ideal: 2, max: 5 } : { ideal: 5, max: 15 } }, audio: false });
+    } catch (e) {
+      $("stLabel").textContent = "대기 중"; $("stMeta").textContent = "화면 공유가 취소되었거나 이 환경에서 막혀 있습니다 (" + (e && e.name || "오류") + ")";
+      return;
+    }
+    video.srcObject = stream; await video.play().catch(() => {});
+    stream.getVideoTracks()[0].addEventListener("ended", () => stop(true));
+    $("btnStart").hidden = true; $("btnStop").hidden = false;
+    resetState(); lastBad = performance.now();
+    $("status").dataset.s = "watch"; $("stLabel").textContent = "감시 중"; $("stMeta").textContent = "시작하는 중…";
+    startTicker();
+  }
+  function stop(byUser) {
+    stopTicker();
+    if (stream) { stream.getTracks().forEach((t) => t.stop()); stream = null; }
+    video.srcObject = null; resetState(); document.title = baseTitle();
+    $("btnStart").hidden = false; $("btnStop").hidden = true; $("btnMute").hidden = true;
+    if (byUser === true) { tones([440, 330], 0.25, S.vol * 0.7); $("status").dataset.s = "ended"; $("stLabel").textContent = "화면 공유가 끝났습니다"; $("stMeta").textContent = "다시 시작하려면 「화면 공유 시작」을 누르세요"; }
+    else { $("status").dataset.s = "idle"; $("stLabel").textContent = "대기 중"; $("stMeta").textContent = "화면 공유를 시작해 주세요"; }
+    $("emptyMsg").hidden = false;
+  }
+  $("btnStart").addEventListener("click", start);
+  $("btnStop").addEventListener("click", () => stop(false));
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
+    $("stLabel").textContent = "이 브라우저는 화면 공유를 지원하지 않습니다"; $("stMeta").textContent = "PC용 크롬이나 엣지를 사용해 주세요";
+    $("btnStart").disabled = true;
+  }
+
+  /* ---------- 설정 ---------- */
+  const bind = (id, key, vid, fmt, after) => {
+    const el = $(id), v = $(vid);
+    el.value = S[key]; v.textContent = fmt(S[key]);
+    el.addEventListener("input", () => { S[key] = parseFloat(el.value); v.textContent = fmt(S[key]); save(); if (after) after(); });
+  };
+  bind("inVol", "vol", "vVol", (x) => Math.round(x * 100) + "%");
+  bind("inRepeatR", "repeatR", "vRepeatR", (x) => (x === 0 ? "사라질 때까지" : x + "회"));
+  bind("inGapR", "gapR", "vGapR", (x) => x + "초");
+  bind("inRepeatP", "repeatP", "vRepeatP", (x) => (x === 0 ? "계속" : x + "회"));
+  bind("inGapP", "gapP", "vGapP", (x) => x + "초");
+  bind("inInt", "interval", "vInt", (x) => x + "ms", () => { if (stream) startTicker(); });
+  bind("inAbs", "absent", "vAbs", (x) => x + "초");
+  bind("inStable", "stable", "vStable", (x) => x + "초");
+  [["inRune", "rune"], ["inPotion", "potion"]].forEach(([id, k]) => {
+    $(id).checked = !!S[k];
+    $(id).addEventListener("change", (e) => { S[k] = e.target.checked; save(); if (k === "rune") { rune.active = false; rune.hist = []; rune.boxes = []; } else { pot.alarm = false; pot.info = null; } });
+  });
+  const num = $("inNum");
+  for (let i = 1; i <= 8; i++) { const o = document.createElement("option"); o.value = i; o.textContent = i + "번 · " + NOTE_NAMES[i - 1]; num.appendChild(o); }
+  const who = () => { $("who").innerHTML = "이 컴퓨터는 <b>" + S.num + "번</b>입니다. 룬은 피아노 <b>" + NOTE_NAMES[S.num - 1] + "</b>, 소재비는 트럼펫 <b>" + NOTE_NAMES[S.num - 1] + "</b> 소리가 납니다."; document.title = baseTitle(); };
+  S.num = Math.min(8, Math.max(1, parseInt(S.num, 10) || 1)); num.value = S.num; who();
+  num.addEventListener("change", () => { S.num = parseInt(num.value, 10); save(); who(); });
+  $("inMode").value = S.mode; $("inMode").addEventListener("change", (e) => { S.mode = e.target.value; save(); });
+  $("inEco").checked = !!S.eco; $("inEco").addEventListener("change", (e) => { S.eco = e.target.checked; save(); if (stream) startTicker(); });
+  $("btnTestRune").addEventListener("click", ringRune);
+  $("btnTestPotion").addEventListener("click", ringPotion);
+
+  /* ---------- 스크린샷 테스트 ---------- */
+  function analyzeImage(im) {
+    const W = im.naturalWidth, H = im.naturalHeight, full = W >= 900;
+    const c = document.createElement("canvas"), cx = c.getContext("2d", { willReadFrequently: true });
+    const out = {};
+    let fr = null;
+    if (full) {
+      const fr0 = px(FRAME_ROI, W, H); c.width = fr0.w; c.height = fr0.h; cx.drawImage(im, fr0.x, fr0.y, fr0.w, fr0.h, 0, 0, fr0.w, fr0.h);
+      fr = findMinimapFrame(cx.getImageData(0, 0, fr0.w, fr0.h).data, fr0.w, fr0.h, W, H);
+      out.frame = fr;
+    }
+    const rr = full ? (fr ? { x: fr.x, y: fr.y, w: fr.w, h: fr.h } : px(RUNE_ROI, W, H)) : { x: 0, y: 0, w: W, h: H };
+    c.width = rr.w; c.height = rr.h; cx.drawImage(im, rr.x, rr.y, rr.w, rr.h, 0, 0, rr.w, rr.h);
+    const fw = full ? W : 1650;
+    out.rune = detectRune(cx.getImageData(0, 0, rr.w, rr.h).data, rr.w, rr.h, fw);
+    if (full && TPL.imgs.length === 2) {
+      const pr = px(POT_ROI, W, H); c.width = pr.w; c.height = pr.h; cx.drawImage(im, pr.x, pr.y, pr.w, pr.h, 0, 0, pr.w, pr.h);
+      const m = findPotion(cx.getImageData(0, 0, pr.w, pr.h).data, pr.w, pr.h, W, null);
+      out.potion = { score: m.score, x: pr.x + m.x, y: pr.y + m.y, size: m.size };
+    }
+    return out;
+  }
+  $("inFile").addEventListener("change", (e) => {
+    const f = e.target.files && e.target.files[0]; if (!f) return;
+    const url = URL.createObjectURL(f), im = new Image();
+    im.onload = () => {
+      const r = analyzeImage(im), parts = [];
+      if (r.frame !== undefined) parts.push(r.frame ? "미니맵 칸 인식 (" + r.frame.x + "," + r.frame.y + " " + r.frame.w + "×" + r.frame.h + ")" : "미니맵 칸 못 찾음 (넓은 구간 사용)");
+      parts.push(r.rune.boxes.length ? "룬 표식 " + r.rune.boxes.length + "개 감지" : "룬 표식 없음" + (r.rune.cands.length ? " (후보: " + r.rune.cands.slice(0, 4).map((c) => c.w + "×" + c.h + " " + c.why).join(", ") + ")" : ""));
+      if (r.potion) parts.push("소재비 일치도 " + r.potion.score.toFixed(2) + (r.potion.score >= POT_T ? " → 인식됨 (" + r.potion.x + "," + r.potion.y + ")" : " → 인식 안 됨"));
+      $("testLog").textContent = parts.join(" · ");
+      URL.revokeObjectURL(url);
+    };
+    im.src = url;
+  });
+
+  loadTemplate().catch(() => {});
+  render(performance.now());
+  window.__rune = { synth: { playPiano, playTrumpet, noteHz, PIANO_BASE, TRUMPET_BASE }, detectRune, findPotion, analyzeImage, tplReady: () => TPL.imgs.length === 2, T: POT_T, state: () => ({ rune: { active: rune.active, ring: rune.ring }, pot: { seen: pot.seen, alarm: pot.alarm, ring: pot.ring, score: pot.score }, scans }) };
+})();
+</script>
+</body>
+</html>
