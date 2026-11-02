@@ -137,6 +137,7 @@ details[open] summary { margin-bottom: 10px; }
           <option value="both">악기 음계 + 음성</option>
         </select></label>
     </div>
+    <div class="row" style="margin-bottom:4px"><button id="btnIgnore" disabled>지금 잡힌 표시를 "맵 장식"으로 등록 (무시)</button> <button id="btnIgnClear">등록 비우기</button> <span class="hint" id="ignInfo"></span></div>
     <p class="hint" id="who" style="margin:0 0 12px"></p>
     <div class="row" style="margin-bottom:4px"><label class="chk"><input type="checkbox" id="inEco"> 절전 모드 (사양이 낮은 컴퓨터용)</label></div>
     <div class="row" style="margin-bottom:4px"><label class="chk"><input type="checkbox" id="inStrict"> 엄격한 룬 판별 (맵의 보라색 장식을 룬으로 착각할 때 켜세요. 룬을 못 잡으면 끄세요)</label></div>
@@ -197,7 +198,7 @@ details[open] summary { margin-bottom: 10px; }
 (() => {
   const $ = (id) => document.getElementById(id);
   const KEY = "rune-alert-v2";
-  const DEF = { vol: 0.6, repeatR: 5, gapR: 3, repeatP: 3, gapP: 3, interval: 500, absent: 3, stable: 3, rune: true, potion: true, num: 1, mode: "tone", eco: false, strict: false };
+  const DEF = { vol: 0.6, repeatR: 5, gapR: 3, repeatP: 3, gapP: 3, interval: 500, absent: 3, stable: 3, rune: true, potion: true, num: 1, mode: "tone", eco: false, strict: false, ignore: [] };
   const S = Object.assign({}, DEF);
   try { Object.assign(S, JSON.parse(localStorage.getItem(KEY) || "{}")); } catch (e) {}
   /* 이전 버전의 공통 설정(repeat, gap)을 룬 설정으로 이어받고, 소재비는 0(계속)이었다면 3회로 시작 */
@@ -247,7 +248,7 @@ details[open] summary { margin-bottom: 10px; }
 
   const SAT_MIN = 0.54;      /* 진짜 룬은 약 0.60, 맵의 보라색 장식은 약 0.45~0.48 */
   function detectRune(d, w, h, fw) {
-    const n = w * h, mask = new Uint8Array(n), satA = new Float32Array(n);
+    const n = w * h, mask = new Uint8Array(n), satA = new Float32Array(n), valA = new Float32Array(n);
     for (let i = 0, p = 0; i < n; i++, p += 4) {
       const r = d[p], g = d[p + 1], b = d[p + 2];
       const mx = Math.max(r, g, b), mn = Math.min(r, g, b), dl = mx - mn;
@@ -255,7 +256,7 @@ details[open] summary { margin-bottom: 10px; }
       let hh;
       if (mx === r) hh = ((g - b) / dl) % 6; else if (mx === g) hh = (b - r) / dl + 2; else hh = (r - g) / dl + 4;
       hh *= 60; if (hh < 0) hh += 360;
-      if (hh >= 268 && hh <= 312) { mask[i] = 1; satA[i] = dl / mx; }          /* 보라~자홍 */
+      if (hh >= 268 && hh <= 312) { mask[i] = 1; satA[i] = dl / mx; valA[i] = mx / 255; }          /* 보라~자홍 */
     }
     const lab = new Int32Array(n), stack = new Int32Array(n), boxes = [], cands = [];
     const minSz = Math.max(4, fw * 0.0035), maxSz = fw * 0.016;
@@ -263,10 +264,10 @@ details[open] summary { margin-bottom: 10px; }
     for (let s = 0; s < n; s++) {
       if (!mask[s] || lab[s]) continue;
       id++; let sp = 0; stack[sp++] = s; lab[s] = id;
-      let area = 0, x0 = w, x1 = 0, y0 = h, y1 = 0, satSum = 0;
+      let area = 0, x0 = w, x1 = 0, y0 = h, y1 = 0, satSum = 0, valSum = 0;
       while (sp) {
         const i = stack[--sp], x = i % w, y = (i / w) | 0;
-        area++; satSum += satA[i]; if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y;
+        area++; satSum += satA[i]; valSum += valA[i]; if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y;
         for (let dy = -1; dy <= 1; dy++) {
           const yy = y + dy; if (yy < 0 || yy >= h) continue;
           for (let dx = -1; dx <= 1; dx++) {
@@ -294,7 +295,7 @@ details[open] summary { margin-bottom: 10px; }
       const mr = rowW.indexOf(mxR) / (bh - 1), mc = colW.indexOf(mxC) / (bw - 1);
       if (mr < 0.2 || mr > 0.8 || mc < 0.2 || mc > 0.8) { c.why = "마름모가 아닌 모양(중심)"; continue; }
       if (Math.min(rowW[0], rowW[bh - 1]) > 0.8 * mxR || Math.min(colW[0], colW[bw - 1]) > 0.8 * mxC) { c.why = "마름모가 아닌 모양(끝이 뭉툭)"; continue; }
-      c.ok = true; boxes.push({ x: x0, y: y0, w: bw, h: bh, area });
+      c.ok = true; boxes.push({ x: x0, y: y0, w: bw, h: bh, area, sat: satSum / area, val: valSum / area });
     }
     return { boxes, core: total, cands };
   }
@@ -509,6 +510,13 @@ details[open] summary { margin-bottom: 10px; }
     return mean < 12 || diff > 28;      /* 암전·맵 이동처럼 화면이 통째로 바뀌는 순간 */
   }
 
+  /* 사용자가 "맵 장식"으로 등록한 것: 미니맵 칸 안의 위치와 색(채도·밝기)이 모두 비슷할 때만 무시 */
+  function sigOf(b) { const fb = rune.fb; return { fx: +((b.x + b.w / 2 - fb.x) / fb.w).toFixed(4), fy: +((b.y + b.h / 2 - fb.y) / fb.h).toFixed(4), s: +b.sat.toFixed(3), v: +b.val.toFixed(3) }; }
+  function isIgnored(b) {
+    if (!S.ignore || !S.ignore.length || !rune.fb) return false;
+    const g = sigOf(b);
+    return S.ignore.some((z) => Math.abs(z.fx - g.fx) <= 0.02 && Math.abs(z.fy - g.fy) <= 0.04 && Math.abs(z.s - g.s) <= 0.08 && Math.abs(z.v - g.v) <= 0.07);
+  }
   function scanOn(src, W, H) {
     const now = performance.now();
     scans++;
@@ -524,7 +532,7 @@ details[open] summary { margin-bottom: 10px; }
       const fb = rune.frame || { x: 0, y: 0, w: Math.min(wide.w, r.w), h: Math.min(wide.h, r.h) };
       rune.fb = { x: r.x + fb.x, y: r.y + fb.y, w: fb.w, h: fb.h };
       const res = detectRune(cR.getImageData(fb.x, fb.y, fb.w, fb.h).data, fb.w, fb.h, W);
-      rune.boxes = res.boxes.map((b) => ({ x: rune.fb.x + b.x, y: rune.fb.y + b.y, w: b.w, h: b.h })); rune.core = res.core; rune.cands = res.cands;
+      rune.boxes = res.boxes.map((b) => ({ x: rune.fb.x + b.x, y: rune.fb.y + b.y, w: b.w, h: b.h, sat: b.sat, val: b.val })).filter((b) => !isIgnored(b)); rune.core = res.core; rune.cands = res.cands;
       const b0 = rune.boxes[0];
       feedRune(!!b0, b0 && { x: b0.x + b0.w / 2, y: b0.y + b0.h / 2 }, now, now - lastBad < 3000, W);
     }
@@ -614,6 +622,7 @@ details[open] summary { margin-bottom: 10px; }
   function render(now) {
     const st = $("status"), anyAlarm = rune.active || pot.alarm;
     $("btnMute").hidden = !anyAlarm;
+    $("btnIgnore").disabled = !(rune.boxes[0] && rune.fb);
     const potTxt = !S.potion ? "소재비 꺼짐" : pot.alarm ? "소재비 종료" : pot.seen ? "소재비 확인됨" : "소재비 아이콘을 찾는 중";
     const runeTxt = !S.rune ? "룬 꺼짐" : rune.active ? "룬 발견" : "룬 감시 중";
     if (rune.active) {
@@ -735,6 +744,10 @@ details[open] summary { margin-bottom: 10px; }
   S.num = Math.min(8, Math.max(1, parseInt(S.num, 10) || 1)); num.value = S.num; who();
   num.addEventListener("change", () => { S.num = parseInt(num.value, 10); save(); who(); });
   $("inMode").value = S.mode; $("inMode").addEventListener("change", (e) => { S.mode = e.target.value; save(); });
+  const ignInfo = () => { $("ignInfo").textContent = S.ignore.length ? "등록된 장식 " + S.ignore.length + "개" : ""; };
+  $("btnIgnore").addEventListener("click", () => { const b = rune.boxes[0]; if (!b || !rune.fb) return; S.ignore.push(sigOf(b)); if (S.ignore.length > 12) S.ignore.shift(); save(); ignInfo(); rune.hist = []; rune.active = false; rune.cand = null; rune.pos = null; rune.ring = 0; });
+  $("btnIgnClear").addEventListener("click", () => { S.ignore = []; save(); ignInfo(); });
+  ignInfo();
   $("inStrict").checked = !!S.strict; $("inStrict").addEventListener("change", (e) => { S.strict = e.target.checked; save(); });
   $("inEco").checked = !!S.eco; $("inEco").addEventListener("change", (e) => { S.eco = e.target.checked; save(); if (stream) startTicker(); });
   $("btnTestRune").addEventListener("click", ringRune);
